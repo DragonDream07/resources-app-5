@@ -1,205 +1,181 @@
-# E-commerce Backend API
+# Shop Frontend
 
-A RESTful e-commerce API built with **Express**, **Knex**, and **PostgreSQL**, with full-text search powered by **Elasticsearch**.
-
----
-
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [Setup](#setup)
-3. [Environment Variables](#environment-variables)
-4. [Migration Commands](#migration-commands)
-5. [Seed Commands](#seed-commands)
-6. [Running the Server](#running-the-server)
-7. [Testing](#testing)
-8. [Module Dependency Direction (ADR)](#module-dependency-direction-adr)
-
----
+React + Vite frontend for the Shop e-commerce platform.
 
 ## Prerequisites
 
-| Tool | Version |
-|------|---------|
-| Node.js | >= 18 |
-| npm | >= 9 |
-| PostgreSQL | >= 14 |
-| Elasticsearch | >= 8 |
-| Docker (optional) | >= 24 |
-
----
+- Node.js >= 18
+- npm >= 9
+- Backend API server running (see root `docker-compose.yml`)
 
 ## Setup
 
 ```bash
-# 1. Clone the repository
-git clone <repo-url>
-cd ecommerce-backend
-
-# 2. Install dependencies
+# Install dependencies
 npm install
 
-# 3. Copy the environment template and fill in your values
+# Copy environment template
 cp .env.example .env
 
-# 4. Start infrastructure via Docker Compose (optional)
-docker-compose up -d
-
-# 5. Run database migrations
-npm run migrate
-
-# 6. (Optional) Seed the database with sample data
-npm run seed
-
-# 7. Start the development server
+# Edit .env with your values
+# Then start the dev server
 npm run dev
 ```
 
----
+The dev server starts at `http://localhost:5173`.
 
 ## Environment Variables
 
-All variables are documented in [`.env.example`](.env.example). Copy it to `.env` and set real values before running.
-
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `NODE_ENV` | yes | `development` | Runtime environment (`development`, `test`, `production`) |
-| `PORT` | yes | `3000` | HTTP server port |
-| `DB_HOST` | yes | `localhost` | PostgreSQL hostname |
-| `DB_PORT` | no | `5432` | PostgreSQL port |
-| `DB_NAME` | yes | `ecommerce_dev` | Database name |
-| `DB_USER` | yes | `postgres` | Database user |
-| `DB_PASSWORD` | yes | `postgres` | Database password |
-| `TEST_DB_HOST` | test | `localhost` | Test DB hostname |
-| `TEST_DB_PORT` | test | `5432` | Test DB port |
-| `TEST_DB_NAME` | test | `ecommerce_test` | Test database name |
-| `TEST_DB_USER` | test | `postgres` | Test DB user |
-| `TEST_DB_PASSWORD` | test | `postgres` | Test DB password |
-| `JWT_SECRET` | yes | — | Secret for signing JWTs |
-| `JWT_EXPIRES_IN` | no | `7d` | JWT expiry duration |
-| `BCRYPT_ROUNDS` | no | `12` | bcrypt salt rounds |
-| `ELASTICSEARCH_URL` | yes | `http://localhost:9200` | Elasticsearch cluster URL |
-| `ELASTICSEARCH_INDEX` | no | `products` | Elasticsearch products index |
-| `RATE_LIMIT_WINDOW_MS` | no | `900000` | Rate-limit window in ms |
-| `RATE_LIMIT_MAX` | no | `100` | Max requests per window |
-| `LOG_LEVEL` | no | `info` | Winston log level |
-| `LOG_DIR` | no | `logs` | Directory for log files |
-| `CORS_ORIGINS` | no | `http://localhost:5173` | Allowed CORS origins (comma-separated) |
+| `VITE_API_BASE_URL` | Yes | `http://localhost:4000` | Backend API base URL |
+| `VITE_APP_ENV` | No | `development` | App environment name |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | No | — | Stripe publishable key for payments |
+| `VITE_ENABLE_GUEST_CHECKOUT` | No | `true` | Toggle guest checkout feature |
 
----
+All Vite env vars must be prefixed with `VITE_` to be exposed to the browser.
 
-## Migration Commands
+## Scripts
 
-```bash
-# Run all pending migrations
-npm run migrate
-# or: npx knex migrate:latest
+| Command | Description |
+|---|---|
+| `npm run dev` | Start Vite dev server with HMR |
+| `npm run build` | Production build to `dist/` |
+| `npm run preview` | Preview production build locally |
+| `npm run lint` | Run ESLint |
+| `npm run lint:fix` | Run ESLint with auto-fix |
+| `npm test` | Run Jest test suite |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests with coverage report |
 
-# Rollback the last batch of migrations
-npm run migrate:rollback
-# or: npx knex migrate:rollback
+## Design Tokens
 
-# Rollback all migrations
-npx knex migrate:rollback --all
+Design tokens are defined in `src/config/tailwind.config.js` and extended in the root `tailwind.config.js`.
 
-# Create a new migration file
-npm run migrate:make -- <migration_name>
-# or: npx knex migrate:make <migration_name>
+### Usage
 
-# Full reset (rollback all → migrate → seed)
-npm run db:reset
+Use Tailwind utility classes throughout components. The token extensions provide:
+
+- **Colors** — brand palette, semantic colours (success, warning, error, info)
+- **Typography** — font families, sizes, weights
+- **Spacing** — consistent spacing scale
+- **Border radius** — component-level radius tokens
+- **Shadows** — elevation scale
+
+Example:
+
+```jsx
+<button className="bg-primary-600 hover:bg-primary-700 text-white font-medium px-4 py-2 rounded-md">
+  Add to Cart
+</button>
 ```
 
----
+Helper utilities `clsx` and `tailwind-merge` are available for conditional and merged class names:
 
-## Seed Commands
+```jsx
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
-```bash
-# Run all seed files in order
-npm run seed
-# or: npx knex seed:run
-
-# Run a specific seed file
-npx knex seed:run --specific=01_roles.js
+const cn = (...inputs) => twMerge(clsx(inputs));
 ```
 
-Seed order:
-1. `01_roles.js` — system roles (admin, customer, guest)
-2. `02_admin_user.js` — default admin account
-3. `03_categories.js` — product categories
-4. `04_brands.js` — brands
-5. `05_products_skus.js` — sample products and SKUs
-6. `06_promo_codes.js` — promotional codes
+## Route Map
 
----
+### Public Routes
 
-## Running the Server
+| Path | Page | Description |
+|---|---|---|
+| `/` | `Home` | Homepage |
+| `/products` | `ProductListing` | All products |
+| `/categories/:categoryId` | `CategoryProductListing` | Products by category |
+| `/search` | `SearchResults` | Search results |
+| `/products/:productId` | `ProductDetail` | Product detail |
+| `/cart` | `Cart` | Shopping cart |
 
-```bash
-# Development (auto-restart on file change)
-npm run dev
+### Auth Routes (guests only)
 
-# Production
-npm start
-```
+| Path | Page | Description |
+|---|---|---|
+| `/auth/login` | `Login` | Login |
+| `/auth/register` | `Register` | Registration |
+| `/auth/forgot-password` | `ForgotPassword` | Forgot password |
+| `/auth/reset-password` | `ResetPassword` | Reset password |
 
----
+### Checkout Routes
+
+| Path | Page | Description |
+|---|---|---|
+| `/checkout/address` | `CheckoutAddress` | Address step |
+| `/checkout/review` | `CheckoutReview` | Review order |
+| `/checkout/payment` | `CheckoutPayment` | Payment step |
+| `/checkout/confirmation` | `CheckoutConfirmation` | Order confirmation |
+| `/checkout/guest-register` | `GuestPostCheckoutRegister` | Post-checkout guest registration |
+
+### Account Routes (authenticated users)
+
+| Path | Page | Description |
+|---|---|---|
+| `/account` | `AccountOverview` | Account dashboard |
+| `/account/profile` | `AccountProfile` | Profile settings |
+| `/account/addresses` | `AccountAddresses` | Saved addresses |
+| `/account/addresses/new` | `AddressNew` | Add address |
+| `/account/addresses/:addressId/edit` | `AddressEdit` | Edit address |
+| `/account/orders` | `OrderHistory` | Order history |
+| `/account/orders/:orderId` | `OrderDetail` | Order detail |
+| `/account/orders/:orderId/return` | `ReturnRequest` | Request return |
+| `/account/notifications` | `Notifications` | Notifications |
+
+### Admin Routes (admin role required)
+
+| Path | Page | Description |
+|---|---|---|
+| `/admin` | `AdminDashboard` | Admin dashboard |
+| `/admin/reports` | `AdminReports` | Reports |
+| `/admin/orders` | `AdminOrderList` | Order management |
+| `/admin/orders/:orderId` | `AdminOrderDetail` | Order detail |
+| `/admin/catalogue/products` | `AdminProductList` | Product management |
+| `/admin/catalogue/products/new` | `AdminProductNew` | Create product |
+| `/admin/catalogue/products/:productId/edit` | `AdminProductEdit` | Edit product |
+| `/admin/catalogue/categories` | `AdminCategoryList` | Category management |
+| `/admin/catalogue/categories/new` | `AdminCategoryNew` | Create category |
+| `/admin/catalogue/categories/:categoryId/edit` | `AdminCategoryEdit` | Edit category |
+| `/admin/catalogue/brands` | `AdminBrandList` | Brand management |
+| `/admin/catalogue/brands/new` | `AdminBrandNew` | Create brand |
+| `/admin/catalogue/brands/:brandId/edit` | `AdminBrandEdit` | Edit brand |
+| `/admin/promotions` | `AdminPromotionList` | Promotions |
+| `/admin/promotions/new` | `AdminPromotionNew` | Create promotion |
+| `/admin/promotions/:promoId/edit` | `AdminPromotionEdit` | Edit promotion |
+| `/admin/returns` | `AdminReturnList` | Returns management |
+| `/admin/returns/:returnRequestId` | `AdminReturnDetail` | Return detail |
+| `/admin/users` | `AdminUserList` | User management |
+| `/admin/users/:userId` | `AdminUserDetail` | User detail |
+
+## API Client
+
+All API calls go through `src/api/` modules which use `axios` with the base URL from `VITE_API_BASE_URL`. In development, Vite proxies `/api` requests to the backend server to avoid CORS issues.
 
 ## Testing
 
+Tests use Jest + `@testing-library/react`. Configuration is in `jest.config.cjs` and `babel.config.cjs` at the project root.
+
 ```bash
-# Run all tests
 npm test
-
-# With coverage report
-npm run test:coverage
 ```
 
-Tests use a separate PostgreSQL database (`TEST_DB_NAME`). Migrations are applied automatically before the test suite via `jest.setup.cjs`.
-
----
-
-## Module Dependency Direction (ADR)
-
-### Decision
-
-All source code follows a strict **unidirectional dependency rule** to prevent circular imports and maintain clear separation of concerns.
-
-### Dependency Layers (outermost → innermost)
+## Project Structure
 
 ```
-HTTP Layer      routes  (*.routes.js)
-                  |
-Controller      *.controller.js
-                  |
-Service         *.service.js
-                  |
-Repository      src/db/repositories/*.repository.js
-                  |
-DB Client       src/db/client.js
-                  |
-Infrastructure  PostgreSQL / Elasticsearch
+src/
+  api/          # Axios API client modules
+  assets/       # Static images and icons
+  components/   # Shared UI components
+  config/       # App and Tailwind config
+  hooks/        # Custom React hooks
+  pages/        # Route-level page components
+  routes/       # React Router route guards
+  store/        # Global state (context / zustand)
+  utils/        # Utility functions
+  App.jsx
+  main.jsx
+  index.css
 ```
-
-### Rules
-
-- Each layer may only import from layers **below** it.
-- **Routes** import controllers and middleware only.
-- **Controllers** import services only (never repositories directly).
-- **Services** import repositories, utilities, and config.
-- **Repositories** import `db/client` and config only — never modules or services.
-- **Middleware** and **utils** are leaf nodes — they must not import from any feature module.
-- **Config** (`src/config/`) is infrastructure-level — no module imports allowed.
-
-### Rationale
-
-- Eliminates circular dependency bugs at compile/lint time (`import/no-cycle` ESLint rule enforces this).
-- Makes each layer independently testable via dependency injection or mocking.
-- Provides a clear mental model for where to add new logic.
-- Follows the Ports & Adapters (Hexagonal) architecture pattern used by the payment and search adapters.
-
-### Enforcement
-
-The `.eslintrc.js` configuration uses `eslint-plugin-import` rules:
-- `import/no-cycle` — hard error on any circular dependency.
-- `import/no-restricted-paths` — hard error when a lower layer imports from a higher layer.
